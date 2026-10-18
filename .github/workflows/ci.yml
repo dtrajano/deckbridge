@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run package:release
+      - name: Inspect VSIX
+        run: npm run validate:vsix -- "deckbridge-$(node -p "require('./package.json').version").vsix"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deckbridge-vsix
+          path: deckbridge-*.vsix
+          if-no-files-found: error

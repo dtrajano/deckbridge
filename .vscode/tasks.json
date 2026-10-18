@@ -1,0 +1,48 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "compile tests",
+      "type": "npm",
+      "script": "compile",
+      "group": "build",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "test",
+      "type": "npm",
+      "script": "test",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "package extension",
+      "type": "npm",
+      "script": "package:local",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "install extension VSIX",
+      "type": "process",
+      "command": "code",
+      "args": [
+        "--install-extension",
+        "${workspaceFolder}/deckbridge-local.vsix",
+        "--force"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "install/update DeckBridge",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "package extension",
+        "install extension VSIX"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

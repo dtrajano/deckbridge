@@ -1,0 +1,16 @@
+.git/**
+.github/**
+.vscode/**
+.azure/**
+.gitignore
+azure-pipelines.yml
+AGENTS.md
+src/**
+test/**
+scripts/**
+tsconfig.json
+**/*.map
+dist/test/**
+deckbridge-*.vsix
+media/deckbridge-marketplace.svg
+

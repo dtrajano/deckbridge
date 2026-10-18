@@ -1,0 +1,268 @@
+{
+  "name": "deckbridge",
+  "displayName": "DeckBridge — Unofficial Client for Agent Deck",
+  "description": "View, manage, and continue Agent Deck sessions from Visual Studio Code.",
+  "version": "0.2.0",
+  "publisher": "dtrajano",
+  "author": {
+    "name": "Diogo Trajano",
+    "url": "https://github.com/dtrajano"
+  },
+  "license": "MIT",
+  "pricing": "Free",
+  "preview": true,
+  "icon": "media/deckbridge.png",
+  "galleryBanner": {
+    "color": "#101820",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dtrajano/deckbridge-vscode.git"
+  },
+  "homepage": "https://github.com/dtrajano/deckbridge-vscode#readme",
+  "bugs": {
+    "url": "https://github.com/dtrajano/deckbridge-vscode/issues"
+  },
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "agent-deck",
+    "agents",
+    "claude",
+    "codex",
+    "gemini",
+    "cursor",
+    "ai chat",
+    "tmux"
+  ],
+  "activationEvents": [
+    "onView:deckbridge.sessions"
+  ],
+  "main": "./dist/src/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "deckbridge",
+          "title": "DeckBridge",
+          "icon": "media/deckbridge.svg"
+        }
+      ]
+    },
+    "views": {
+      "deckbridge": [
+        {
+          "id": "deckbridge.sessions",
+          "name": "Agent Deck Sessions",
+          "when": "deckbridge.chatOpen != true"
+        },
+        {
+          "id": "deckbridge.chat",
+          "name": "Chat",
+          "type": "webview",
+          "when": "deckbridge.chatOpen"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "deckbridge.refresh",
+        "title": "DeckBridge: Refresh Sessions",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "deckbridge.checkInstallation",
+        "title": "DeckBridge: Check Agent Deck Installation"
+      },
+      {
+        "command": "deckbridge.configureExecutable",
+        "title": "DeckBridge: Configure Agent Deck Executable"
+      },
+      {
+        "command": "deckbridge.openInstallGuide",
+        "title": "DeckBridge: Open Agent Deck Installation Guide"
+      },
+      {
+        "command": "deckbridge.openChat",
+        "title": "DeckBridge: Open Chat"
+      },
+      {
+        "command": "deckbridge.openChatInEditor",
+        "title": "DeckBridge: Open Chat in Editor"
+      },
+      {
+        "command": "deckbridge.attach",
+        "title": "DeckBridge: Open in Terminal",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "deckbridge.createSession",
+        "title": "DeckBridge: Create Session",
+        "icon": "$(add)"
+      },
+      {
+        "command": "deckbridge.start",
+        "title": "DeckBridge: Start Session"
+      },
+      {
+        "command": "deckbridge.stop",
+        "title": "DeckBridge: Stop Session"
+      },
+      {
+        "command": "deckbridge.restart",
+        "title": "DeckBridge: Restart Session"
+      },
+      {
+        "command": "deckbridge.rename",
+        "title": "DeckBridge: Rename Session"
+      },
+      {
+        "command": "deckbridge.moveToGroup",
+        "title": "DeckBridge: Move Session to Group"
+      },
+      {
+        "command": "deckbridge.switchTool",
+        "title": "DeckBridge: Switch Tool with Context"
+      },
+      {
+        "command": "deckbridge.sendMessage",
+        "title": "DeckBridge: Send Message"
+      },
+      {
+        "command": "deckbridge.toggleScope",
+        "title": "DeckBridge: Toggle Workspace/All Sessions",
+        "icon": "$(filter)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "deckbridge.createSession",
+          "when": "view == deckbridge.sessions",
+          "group": "navigation@1"
+        },
+        {
+          "command": "deckbridge.toggleScope",
+          "when": "view == deckbridge.sessions",
+          "group": "navigation@2"
+        },
+        {
+          "command": "deckbridge.refresh",
+          "when": "view == deckbridge.sessions",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "deckbridge.openChat",
+          "when": "view == deckbridge.sessions && viewItem == deckbridge.session",
+          "group": "inline@1"
+        },
+        {
+          "command": "deckbridge.attach",
+          "when": "view == deckbridge.sessions && viewItem == deckbridge.session",
+          "group": "inline@2"
+        },
+        {
+          "command": "deckbridge.openChatInEditor",
+          "when": "view == deckbridge.sessions && viewItem == deckbridge.session",
+          "group": "open@1"
+        },
+        {
+          "command": "deckbridge.start",
+          "when": "view == deckbridge.sessions && viewItem == deckbridge.session",
+          "group": "session@1"
+        },
+        {
+          "command": "deckbridge.stop",
+          "when": "view == deckbridge.sessions && viewItem == deckbridge.session",
+          "group": "session@2"
+        },
+        {
+          "command": "deckbridge.restart",
+          "when": "view == deckbridge.sessions && viewItem == deckbridge.session",
+          "group": "session@3"
+        },
+        {
+          "command": "deckbridge.rename",
+          "when": "view == deckbridge.sessions && viewItem == deckbridge.session",
+          "group": "manage@1"
+        },
+        {
+          "command": "deckbridge.moveToGroup",
+          "when": "view == deckbridge.sessions && viewItem == deckbridge.session",
+          "group": "manage@2"
+        },
+        {
+          "command": "deckbridge.switchTool",
+          "when": "view == deckbridge.sessions && viewItem == deckbridge.session",
+          "group": "manage@3"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DeckBridge",
+      "properties": {
+        "deckbridge.executablePath": {
+          "type": "string",
+          "default": "agent-deck",
+          "description": "Path to the Agent Deck executable."
+        },
+        "deckbridge.profile": {
+          "type": "string",
+          "default": "",
+          "description": "Optional Agent Deck profile passed with --profile."
+        },
+        "deckbridge.additionalPath": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional executable directories prepended to PATH for Agent Deck, tmux, and agent tools. Supports ~/ prefixes."
+        },
+        "deckbridge.showAllSessions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show sessions outside the current workspace."
+        },
+        "deckbridge.initialMessageLimit": {
+          "type": "number",
+          "default": 100,
+          "minimum": 20,
+          "maximum": 500,
+          "description": "Number of recent chat rows loaded initially."
+        },
+        "deckbridge.autoStartOnOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start stopped or errored sessions when their chat is opened."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "test": "npm run compile && node --import tsx --test test/**/*.test.ts",
+    "validate:package": "node scripts/validate-package.mjs",
+    "validate:vsix": "node scripts/validate-vsix.mjs",
+    "vscode:prepublish": "npm run compile",
+    "package": "npm run validate:package && vsce package",
+    "package:release": "npm run validate:package && vsce package --out deckbridge-${npm_package_version}.vsix",
+    "package:local": "vsce package --allow-missing-repository --out deckbridge-local.vsix"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.96.0",
+    "@vscode/vsce": "^3.2.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.7.2"
+  }
+}

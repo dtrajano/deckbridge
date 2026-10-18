@@ -1,0 +1,62 @@
+trigger:
+  branches:
+    exclude: ['*']
+  tags:
+    include: ['v*.*.*']
+
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureServiceConnection: deckbridge-marketplace-wif
+
+steps:
+  - checkout: self
+    fetchDepth: 1
+
+  - task: NodeTool@0
+    inputs:
+      versionSpec: 22.x
+    displayName: Use Node.js 22
+
+  - script: npm ci
+    displayName: Install dependencies
+
+  - bash: |
+      VERSION=$(node -p "require('./package.json').version")
+      test "$(Build.SourceBranchName)" = "v$VERSION"
+    displayName: Validate tag and version
+
+  - script: npm test
+    displayName: Run tests
+
+  - script: npm audit --omit=dev --audit-level=high
+    displayName: Audit production dependencies
+
+  - script: npm run package:release
+    displayName: Package VSIX
+
+  - bash: |
+      VERSION=$(node -p "require('./package.json').version")
+      npm run validate:vsix -- "deckbridge-$VERSION.vsix"
+      mkdir -p "$(Build.ArtifactStagingDirectory)/vsix"
+      cp "deckbridge-$VERSION.vsix" "$(Build.ArtifactStagingDirectory)/vsix/"
+    displayName: Inspect VSIX
+
+  - task: AzureCLI@2
+    displayName: Publish free Preview to Visual Studio Marketplace
+    inputs:
+      azureSubscription: $(azureServiceConnection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        VERSION=$(node -p "require('./package.json').version")
+        npx vsce publish --packagePath "deckbridge-$VERSION.vsix" --azure-credential
+
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: $(Build.ArtifactStagingDirectory)/vsix
+      artifact: deckbridge-vsix
+      publishLocation: pipeline

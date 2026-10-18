@@ -1,0 +1,41 @@
+name: Bug report
+description: Report a reproducible DeckBridge problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include credentials, private source code or Agent Deck transcripts.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: DeckBridge, VS Code and Agent Deck versions
+      placeholder: DeckBridge 0.2.0, VS Code 1.xx, Agent Deck 1.xx
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system and agent tool
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true

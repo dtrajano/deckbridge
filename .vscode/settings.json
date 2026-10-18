@@ -1,0 +1,22 @@
+{
+  "nodejs-testing.include": [
+    "test"
+  ],
+  "nodejs-testing.extensions": [
+    {
+      "extensions": [
+        "ts"
+      ],
+      "filePatterns": [
+        "**/*.test.ts"
+      ],
+      "parameters": [
+        "--import",
+        "tsx"
+      ]
+    }
+  ],
+  "testExplorer.useNativeTesting": true,
+  "testing.automaticallyOpenTestResults": "neverOpen",
+  "deckbridge.showAllSessions": true
+}

@@ -1,0 +1,32 @@
+name: GitHub Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate tag and version
+        run: test "$GITHUB_REF_NAME" = "v$(node -p "require('./package.json').version")"
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run package:release
+      - name: Inspect VSIX
+        run: npm run validate:vsix -- "deckbridge-$(node -p "require('./package.json').version").vsix"
+      - name: Build release notes
+        run: node scripts/release-notes.mjs "${GITHUB_REF_NAME#v}" > release-notes.md
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" deckbridge-*.vsix --verify-tag --title "DeckBridge ${GITHUB_REF_NAME#v}" --notes-file release-notes.md --prerelease
