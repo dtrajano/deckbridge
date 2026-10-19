@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { homedir } from 'node:os';
 import { AgentDeckClient } from './agentDeckClient';
 import { ChatPanel, ChatViewProvider } from './chatPanel';
-import { SessionNode, SessionTreeProvider } from './sessionTree';
+import { GroupNode, SessionNode, SessionTreeProvider, TreeNode } from './sessionTree';
 import { AgentDeckSession } from './types';
 import { assessSwitch } from './switchPolicy';
 import { buildCommandEnvironment } from './environment';
@@ -12,7 +12,22 @@ const INSTALL_URL = 'https://github.com/asheshgoplani/agent-deck#installation';
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const getClient = () => createClient();
   const tree = new SessionTreeProvider(getClient);
-  context.subscriptions.push(tree, vscode.window.registerTreeDataProvider('deckbridge.sessions', tree));
+  let sessionsView: vscode.TreeView<TreeNode>;
+  let sessionsViewListeners: vscode.Disposable[] = [];
+  const createSessionsView = (): void => {
+    sessionsView = vscode.window.createTreeView('deckbridge.sessions', { treeDataProvider: tree });
+    sessionsViewListeners = [
+      sessionsView.onDidExpandElement((event) => {
+        if (event.element instanceof GroupNode) tree.setGroupExpanded(event.element, true);
+      }),
+      sessionsView.onDidCollapseElement((event) => {
+        if (event.element instanceof GroupNode) tree.setGroupExpanded(event.element, false);
+      })
+    ];
+    context.subscriptions.push(sessionsView, ...sessionsViewListeners);
+  };
+  createSessionsView();
+  context.subscriptions.push(tree);
   const chatView = new ChatViewProvider(context.extensionUri, getClient, () => tree.refresh());
   context.subscriptions.push(chatView, vscode.window.registerWebviewViewProvider('deckbridge.chat', chatView, {
     webviewOptions: { retainContextWhenHidden: true }
@@ -23,6 +38,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   };
 
   register('deckbridge.refresh', () => tree.refresh());
+  register('deckbridge.collapseGroups', async () => {
+    tree.collapseAll();
+    await vscode.commands.executeCommand('setContext', 'deckbridge.groupsCollapsed', true);
+    await vscode.commands.executeCommand('workbench.actions.treeView.deckbridge.sessions.collapseAll');
+  });
+  register('deckbridge.expandGroups', async () => {
+    await tree.expandAll(sessionsView);
+    await vscode.commands.executeCommand('setContext', 'deckbridge.groupsCollapsed', false);
+  });
   register('deckbridge.openInstallGuide', () => vscode.env.openExternal(vscode.Uri.parse(INSTALL_URL)));
   register('deckbridge.checkInstallation', async () => {
     const state = await getClient().checkInstallation();
@@ -160,6 +184,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration('deckbridge')) void tree.refresh();
   }));
+  await vscode.commands.executeCommand('setContext', 'deckbridge.groupsCollapsed', false);
   await tree.refresh();
   tree.startAutoRefresh();
   const state = await getClient().checkInstallation();

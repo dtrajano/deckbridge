@@ -23,4 +23,13 @@ describe('DeckBridge view navigation', () => {
   it('shows the full Agent Deck session inventory by default', () => {
     assert.equal(packageJson.contributes.configuration.properties['deckbridge.showAllSessions'].default, true);
   });
+
+  it('contributes one visible expand/collapse action to the session tree', () => {
+    const commands = (packageJson.contributes.commands as Array<{ command: string }>).map((command) => command.command);
+    assert.ok(commands.includes('deckbridge.expandGroups'));
+    assert.ok(commands.includes('deckbridge.collapseGroups'));
+    assert.equal(commands.includes('deckbridge.toggleGroups'), false);
+    const titleCommands = (packageJson.contributes.menus['view/title'] as Array<{ command: string }>).map((command) => command.command);
+    assert.deepEqual(titleCommands.filter((command) => command === 'deckbridge.expandGroups' || command === 'deckbridge.collapseGroups'), ['deckbridge.expandGroups', 'deckbridge.collapseGroups']);
+  });
 });

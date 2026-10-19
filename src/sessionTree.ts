@@ -5,6 +5,7 @@ import { sessionTreeIndicator } from './sessionPolicy';
 import { displayStatus, summarizeSessions } from './sessionSummary';
 import { AgentDeckSession, InstallationState } from './types';
 import { mergeTreeSessionStatus } from './treeSessionStatus';
+import { groupContainsSession, setAllGroupsExpanded, setGroupExpanded } from './treeExpansion';
 
 export type TreeNode = StatusNode | SummaryNode | GroupNode | SessionNode;
 
@@ -32,6 +33,8 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
   private readonly changeEmitter = new vscode.EventEmitter<TreeNode | undefined>();
   readonly onDidChangeTreeData = this.changeEmitter.event;
   private sessions: AgentDeckSession[] = [];
+  private readonly collapsedGroups = new Set<string>();
+  private cachedRoots?: TreeNode[];
   private installation: InstallationState = { available: false, error: 'Checking Agent Deck…' };
   private refreshTimer?: NodeJS.Timeout;
 
@@ -42,6 +45,7 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
     this.installation = await client.checkInstallation();
     if (!this.installation.available) {
       this.sessions = [];
+      this.cachedRoots = undefined;
       this.changeEmitter.fire(undefined);
       return;
     }
@@ -56,8 +60,10 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
         return mergeTreeSessionStatus(session, details, runtime);
       });
       this.sessions = detailed;
+      this.cachedRoots = undefined;
     } catch (error) {
       this.sessions = [];
+      this.cachedRoots = undefined;
       this.installation = { available: true, version: this.installation.version, error: errorMessage(error) };
     }
     this.changeEmitter.fire(undefined);
@@ -79,7 +85,13 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
       return item;
     }
     if (element instanceof GroupNode) {
-      const item = new vscode.TreeItem(element.name, vscode.TreeItemCollapsibleState.Expanded);
+      const item = new vscode.TreeItem(
+        element.name,
+        this.collapsedGroups.has(element.name)
+          ? vscode.TreeItemCollapsibleState.Collapsed
+          : vscode.TreeItemCollapsibleState.Expanded
+      );
+      item.id = `group:${element.name}`;
       item.description = String(element.sessions.length);
       item.iconPath = new vscode.ThemeIcon('folder');
       return item;
@@ -123,7 +135,46 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
     if (!this.installation.available) return element ? [] : [new StatusNode(this.installation)];
     if (element instanceof GroupNode) return element.sessions.map((session) => new SessionNode(session));
     if (element) return [];
+    return this.rootNodes();
+  }
 
+  /**
+   * TreeView.reveal relies on getParent to locate an element in the tree.
+   * Without this method VS Code silently ignores reveal(..., { expand: true }),
+   * which made the expand-all action change its icon but leave groups closed.
+   */
+  getParent(element: TreeNode): TreeNode | undefined {
+    if (!(element instanceof SessionNode)) return undefined;
+    const groups = this.rootNodes().filter((node): node is GroupNode => node instanceof GroupNode);
+    const name = groupContainsSession(groups, element.session.id);
+    return groups.find((group) => group.name === name);
+  }
+
+  async expandAll(treeView: vscode.TreeView<TreeNode>): Promise<void> {
+    const groups = this.rootNodes().filter((node): node is GroupNode => node instanceof GroupNode);
+    setAllGroupsExpanded(this.collapsedGroups, [], true);
+    for (const group of groups) {
+      try {
+        await treeView.reveal(group, { expand: true, focus: true, select: true });
+        await vscode.commands.executeCommand('list.expand');
+      } catch {
+        // The group may be replaced by an automatic refresh while revealing it.
+      }
+    }
+    this.changeEmitter.fire(undefined);
+  }
+
+  collapseAll(): void {
+    setAllGroupsExpanded(this.collapsedGroups, this.rootNodes().filter((node): node is GroupNode => node instanceof GroupNode).map((node) => node.name), false);
+    this.changeEmitter.fire(undefined);
+  }
+
+  setGroupExpanded(group: GroupNode, expanded: boolean): void {
+    setGroupExpanded(this.collapsedGroups, group.name, expanded);
+  }
+
+  private rootNodes(): TreeNode[] {
+    if (this.cachedRoots) return this.cachedRoots;
     const config = vscode.workspace.getConfiguration('deckbridge');
     const showAll = config.get<boolean>('showAllSessions', false);
     const roots = (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath);
@@ -140,7 +191,8 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([name, sessions]) => new GroupNode(name, sessions.sort(sortSessions)));
     const content: TreeNode[] = [new SummaryNode(visible), ...groups];
-    return this.installation.error ? [new StatusNode(this.installation), ...content] : content;
+    this.cachedRoots = this.installation.error ? [new StatusNode(this.installation), ...content] : content;
+    return this.cachedRoots;
   }
 
   dispose(): void {

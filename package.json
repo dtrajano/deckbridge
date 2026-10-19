@@ -77,6 +77,16 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "deckbridge.expandGroups",
+        "title": "DeckBridge: Expand All Groups",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "deckbridge.collapseGroups",
+        "title": "DeckBridge: Collapse All Groups",
+        "icon": "$(collapse-all)"
+      },
+      {
         "command": "deckbridge.checkInstallation",
         "title": "DeckBridge: Check Agent Deck Installation"
       },
@@ -156,6 +166,16 @@
           "command": "deckbridge.refresh",
           "when": "view == deckbridge.sessions",
           "group": "navigation@3"
+        },
+        {
+          "command": "deckbridge.expandGroups",
+          "when": "view == deckbridge.sessions && deckbridge.groupsCollapsed == true",
+          "group": "navigation@4"
+        },
+        {
+          "command": "deckbridge.collapseGroups",
+          "when": "view == deckbridge.sessions && deckbridge.groupsCollapsed != true",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
