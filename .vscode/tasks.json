@@ -43,6 +43,35 @@
         "install extension VSIX"
       ],
       "problemMatcher": []
+    },
+    {
+      "label": "publish extension to Marketplace",
+      "type": "process",
+      "command": "npm",
+      "args": [
+        "run",
+        "publish:marketplace"
+      ],
+      "options": {
+        "env": {
+          "VSCE_PAT": "${input:deckbridgeMarketplaceToken}"
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "deckbridgeMarketplaceToken",
+      "type": "promptString",
+      "description": "Marketplace token (Marketplace > Manage)",
+      "password": true
     }
   ]
 }

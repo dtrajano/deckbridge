@@ -6,6 +6,7 @@ import { GroupNode, SessionNode, SessionTreeDragController, SessionTreeProvider,
 import { AgentDeckSession } from './types';
 import { assessSwitch } from './switchPolicy';
 import { buildCommandEnvironment } from './environment';
+import { diagnoseAgentDeckError } from './agentDeckDiagnostics';
 
 const INSTALL_URL = 'https://github.com/asheshgoplani/agent-deck#installation';
 
@@ -63,6 +64,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     if (action === 'View installation') await vscode.env.openExternal(vscode.Uri.parse(INSTALL_URL));
     if (action === 'Configure path') await vscode.commands.executeCommand('deckbridge.configureExecutable');
     if (action === 'Check again') await vscode.commands.executeCommand('deckbridge.checkInstallation');
+  });
+  register('deckbridge.diagnose', async (value: unknown) => {
+    const message = typeof value === 'string' ? value : 'Não foi possível obter detalhes do erro do Agent Deck.';
+    const diagnostic = diagnoseAgentDeckError(message);
+    const action = await vscode.window.showErrorMessage(diagnostic.title, { modal: false }, 'Abrir diagnóstico', 'Recarregar janela SSH');
+    if (action === 'Abrir diagnóstico') {
+      const terminal = vscode.window.createTerminal({ name: 'DeckBridge: Agent Deck diagnostics', env: commandEnvironment(vscode.workspace.getConfiguration('deckbridge')) });
+      terminal.show();
+      terminal.sendText('printf \'\\n--- DeckBridge diagnostic ---\\n\'; agent-deck --version; agent-deck status; printf \'\\n--- original error ---\\n\'; printf %s ' + shellEscape(diagnostic.detail), true);
+    } else if (action === 'Recarregar janela SSH') {
+      await vscode.commands.executeCommand('workbench.action.reloadWindow');
+    }
   });
   register('deckbridge.configureExecutable', async () => {
     const selected = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: false, canSelectMany: false, title: 'Select the Agent Deck executable' });

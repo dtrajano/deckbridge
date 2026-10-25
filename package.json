@@ -94,6 +94,10 @@
         "title": "DeckBridge: Check Agent Deck Installation"
       },
       {
+        "command": "deckbridge.diagnose",
+        "title": "DeckBridge: Diagnose Agent Deck"
+      },
+      {
         "command": "deckbridge.configureExecutable",
         "title": "DeckBridge: Configure Agent Deck Executable"
       },
@@ -314,7 +318,8 @@
     "vscode:prepublish": "npm run compile",
     "package": "npm run validate:package && vsce package",
     "package:release": "npm run validate:package && vsce package --out deckbridge-${npm_package_version}.vsix",
-    "package:local": "vsce package --allow-missing-repository --out deckbridge-local.vsix"
+    "package:local": "vsce package --allow-missing-repository --out deckbridge-local.vsix",
+    "publish:marketplace": "node scripts/publish-marketplace.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

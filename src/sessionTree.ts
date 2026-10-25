@@ -111,7 +111,9 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
       const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
       item.description = element.state.error;
       item.iconPath = new vscode.ThemeIcon(element.state.available ? 'pass-filled' : 'warning');
-      item.command = element.state.available ? undefined : { command: 'deckbridge.checkInstallation', title: 'Check installation' };
+      item.command = element.state.error
+        ? { command: 'deckbridge.diagnose', title: 'Diagnose Agent Deck', arguments: [element.state.error] }
+        : element.state.available ? undefined : { command: 'deckbridge.checkInstallation', title: 'Check installation' };
       return item;
     }
     if (element instanceof GroupNode) {
