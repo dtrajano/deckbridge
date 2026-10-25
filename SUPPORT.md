@@ -1,6 +1,6 @@
 # Support
 
-Use [GitHub Issues](https://github.com/dtrajano/deckbridge-vscode/issues) for DeckBridge bugs and feature requests.
+Use [GitHub Issues](https://github.com/dtrajano/deckbridge/issues) for DeckBridge bugs and feature requests.
 
 Before opening an issue:
 

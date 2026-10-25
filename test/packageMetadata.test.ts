@@ -21,10 +21,10 @@ test('runs in the workspace extension host for Remote SSH sessions', () => {
 test('links Marketplace users to the public project resources', () => {
   assert.deepEqual(manifest.repository, {
     type: 'git',
-    url: 'https://github.com/dtrajano/deckbridge-vscode.git'
+    url: 'https://github.com/dtrajano/deckbridge.git'
   });
-  assert.equal(manifest.homepage, 'https://github.com/dtrajano/deckbridge-vscode#readme');
-  assert.deepEqual(manifest.bugs, { url: 'https://github.com/dtrajano/deckbridge-vscode/issues' });
+  assert.equal(manifest.homepage, 'https://github.com/dtrajano/deckbridge#readme');
+  assert.deepEqual(manifest.bugs, { url: 'https://github.com/dtrajano/deckbridge/issues' });
 });
 
 test('keeps development files and generated VSIX archives out of the package', () => {

@@ -18,11 +18,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/dtrajano/deckbridge-vscode.git"
+    "url": "https://github.com/dtrajano/deckbridge.git"
   },
-  "homepage": "https://github.com/dtrajano/deckbridge-vscode#readme",
+  "homepage": "https://github.com/dtrajano/deckbridge#readme",
   "bugs": {
-    "url": "https://github.com/dtrajano/deckbridge-vscode/issues"
+    "url": "https://github.com/dtrajano/deckbridge/issues"
   },
   "engines": {
     "vscode": "^1.96.0"

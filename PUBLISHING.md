@@ -5,7 +5,7 @@ DeckBridge is published as a free Preview extension. A release is driven by a `v
 ## One-time account setup
 
 1. Create the `dtrajano` publisher in the [Visual Studio Marketplace publisher portal](https://marketplace.visualstudio.com/manage/publishers/).
-2. Create a private Azure DevOps project linked to `dtrajano/deckbridge-vscode`.
+2. Create a private Azure DevOps project linked to `dtrajano/deckbridge`.
 3. Link a valid Azure subscription only to activate the free Azure Pipelines grant. Do not purchase parallel jobs.
 4. Create a user-assigned managed identity and a workload-identity-federated Azure Resource Manager service connection named `deckbridge-marketplace-wif`.
 5. Add the managed identity to the `dtrajano` Marketplace publisher with the Contributor role.
