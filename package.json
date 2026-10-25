@@ -2,7 +2,7 @@
   "name": "deckbridge",
   "displayName": "DeckBridge — Unofficial Client for Agent Deck",
   "description": "View, manage, and continue Agent Deck sessions from Visual Studio Code.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "dtrajano",
   "author": {
     "name": "Diogo Trajano",

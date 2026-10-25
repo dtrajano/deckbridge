@@ -2,6 +2,13 @@
 
 All notable changes to DeckBridge are documented here.
 
+## 0.2.1 - 2026-10-25
+
+### Fixed
+
+- Use a stable public README image URL in the Marketplace renderer.
+- Remove opaque white corners from the Marketplace icon.
+
 ## 0.2.0 - 2026-10-18
 
 ### Added
