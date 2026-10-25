@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { homedir } from 'node:os';
 import { AgentDeckClient } from './agentDeckClient';
 import { ChatPanel, ChatViewProvider } from './chatPanel';
-import { GroupNode, SessionNode, SessionTreeProvider, TreeNode } from './sessionTree';
+import { GroupNode, SessionNode, SessionTreeDragController, SessionTreeProvider, TreeNode } from './sessionTree';
 import { AgentDeckSession } from './types';
 import { assessSwitch } from './switchPolicy';
 import { buildCommandEnvironment } from './environment';
@@ -13,9 +13,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const getClient = () => createClient();
   const tree = new SessionTreeProvider(getClient);
   let sessionsView: vscode.TreeView<TreeNode>;
+  const dragController = new SessionTreeDragController(getClient, () => tree.refresh());
   let sessionsViewListeners: vscode.Disposable[] = [];
   const createSessionsView = (): void => {
-    sessionsView = vscode.window.createTreeView('deckbridge.sessions', { treeDataProvider: tree });
+    sessionsView = vscode.window.createTreeView('deckbridge.sessions', { treeDataProvider: tree, dragAndDropController: dragController });
     sessionsViewListeners = [
       sessionsView.onDidExpandElement((event) => {
         if (event.element instanceof GroupNode) tree.setGroupExpanded(event.element, true);
@@ -27,7 +28,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     context.subscriptions.push(sessionsView, ...sessionsViewListeners);
   };
   createSessionsView();
-  context.subscriptions.push(tree);
+  context.subscriptions.push(tree, dragController);
   const chatView = new ChatViewProvider(context.extensionUri, getClient, () => tree.refresh());
   context.subscriptions.push(chatView, vscode.window.registerWebviewViewProvider('deckbridge.chat', chatView, {
     webviewOptions: { retainContextWhenHidden: true }
@@ -107,6 +108,37 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     await runWithProgress(`Creating ${title}…`, () => getClient().createSession(folder.uri.fsPath, title, tool));
     await tree.refresh();
   });
+  register('deckbridge.createSessionInGroup', async (value: unknown) => {
+    if (!(value instanceof GroupNode)) return;
+    const folders = vscode.workspace.workspaceFolders ?? [];
+    const fallbackPath = value.sessions.find((session) => session.path)?.path;
+    if (!folders.length && !fallbackPath) return void vscode.window.showWarningMessage('Open a workspace before creating an Agent Deck session in this group.');
+    const folder = folders.length === 1
+      ? folders[0]
+      : folders.length > 1
+        ? await vscode.window.showWorkspaceFolderPick({ placeHolder: `Choose the workspace for ${value.name}` })
+        : undefined;
+    const path = folder?.uri.fsPath ?? fallbackPath;
+    if (!path) return;
+    const defaultTitle = folder?.name ?? value.sessions[0]?.title ?? value.name.split('/').pop() ?? value.name;
+    const title = await vscode.window.showInputBox({ prompt: `Session title in ${value.name}`, value: defaultTitle, validateInput: (candidate) => candidate.trim() ? undefined : 'A title is required.' });
+    if (!title) return;
+    const tool = await vscode.window.showQuickPick(['claude', 'codex', 'gemini', 'opencode', 'pi'], { placeHolder: 'Choose an agent' });
+    if (!tool) return;
+    await runWithProgress(`Creating ${title} in ${value.name}…`, () => getClient().createSession(path, title, tool, value.name));
+    await tree.refresh();
+  });
+  register('deckbridge.createGroup', async (value: unknown) => {
+    const parent = value instanceof GroupNode ? value.name : undefined;
+    const name = await vscode.window.showInputBox({
+      prompt: parent ? `New group inside ${parent}` : 'New Agent Deck group',
+      placeHolder: 'Group name',
+      validateInput: (candidate) => candidate.trim() ? undefined : 'A group name is required.'
+    });
+    if (!name?.trim()) return;
+    await runWithProgress(`Creating group ${name.trim()}…`, () => getClient().createGroup(name.trim(), parent));
+    await tree.refresh();
+  });
 
   for (const action of ['start', 'stop', 'restart'] as const) {
     register(`deckbridge.${action}`, async (value: unknown) => {
@@ -126,6 +158,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     });
     if (!title || title.trim() === session.title) return;
     await runWithProgress(`Renaming ${session.title}…`, () => getClient().renameSession(session.id, title.trim()));
+    await tree.refresh();
+  });
+  register('deckbridge.remove', async (value: unknown) => {
+    const session = extractSession(value);
+    if (!session) return;
+    const answer = await vscode.window.showWarningMessage(
+      `Remove Agent Deck chat “${session.title}”? This removes it from the registry and cannot be undone.`,
+      { modal: true },
+      'Remove chat'
+    );
+    if (answer !== 'Remove chat') return;
+    await runWithProgress(`Removing ${session.title}…`, () => getClient().removeSession(session.id));
     await tree.refresh();
   });
   register('deckbridge.moveToGroup', async (value: unknown) => {

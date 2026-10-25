@@ -14,6 +14,10 @@ test('publishes DeckBridge under the personal publisher as a free Preview', () =
   assert.equal(manifest.icon, 'media/deckbridge.png');
 });
 
+test('runs in the workspace extension host for Remote SSH sessions', () => {
+  assert.deepEqual(manifest.extensionKind, ['workspace']);
+});
+
 test('links Marketplace users to the public project resources', () => {
   assert.deepEqual(manifest.repository, {
     type: 'git',

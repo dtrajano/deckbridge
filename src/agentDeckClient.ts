@@ -7,6 +7,7 @@ import { buildContextArgs } from './contextUsage';
 import { hasAgentDescendant, parseTmuxDisplay, TmuxRuntimeState } from './runtimeDetection';
 import { ChatCompletion, parseSkillCompletions } from './chatCompletions';
 import { parseSendQueue, SendQueueModel } from './sendQueue';
+import { buildCreateGroupArgs, buildCreateSessionArgs } from './groupCreation';
 
 export interface ClientOptions {
   executable: string;
@@ -85,6 +86,11 @@ export class AgentDeckClient {
     return (await this.runExternal('tmux', ['capture-pane', '-p', '-J', '-t', tmuxSession, '-S', '-200'], 5_000)).stdout;
   }
 
+  async respondToPrompt(sessionId: string, response: string): Promise<void> {
+    await this.run(['session', 'send-keys', sessionId, '--text', response, '--json'], 10_000);
+    await this.run(['session', 'send-keys', sessionId, '--enter', '--json'], 10_000);
+  }
+
   async olderTimeline(sessionId: string, before: string, limit: number): Promise<RecallTimeline> {
     return parseTimeline((await this.run(['recall', 'timeline', sessionId, '--json', '--before', before, '--limit', String(limit)])).stdout);
   }
@@ -93,9 +99,9 @@ export class AgentDeckClient {
     return new RecallFollower(this.spawn(['recall', 'follow', sessionId, '--after', after || 'end', '--jsonl', '--status']));
   }
 
-  async send(sessionId: string, message: string, immediate = false, tmuxSession?: string): Promise<Record<string, unknown>> {
+  async send(sessionId: string, message: string, immediate = false, tmuxSession?: string, imagePaths: readonly string[] = []): Promise<Record<string, unknown>> {
     const attempt = async (): Promise<Record<string, unknown>> => {
-      const output = (await this.run(buildSendArgs(sessionId, message, immediate), 120_000)).stdout;
+      const output = (await this.run(buildSendArgs(sessionId, message, immediate, imagePaths), 120_000)).stdout;
       const receipt = output.trim() ? JSON.parse(output) as Record<string, unknown> : {};
       const failure = sendReceiptFailure(receipt);
       if (failure) throw new AgentDeckError(failure, '', 0);
@@ -143,16 +149,24 @@ export class AgentDeckClient {
     await this.run(['session', action, sessionId], 60_000);
   }
 
-  async createSession(path: string, title: string, tool: string): Promise<void> {
-    await this.run(['add', '--json', '-t', title, '-c', tool, path], 60_000);
+  async createSession(path: string, title: string, tool: string, group?: string): Promise<void> {
+    await this.run(buildCreateSessionArgs(path, title, tool, group), 60_000);
   }
 
   async renameSession(sessionId: string, title: string): Promise<void> {
     await this.run(['session', 'set', sessionId, 'title', title]);
   }
 
+  async removeSession(sessionId: string): Promise<void> {
+    await this.run(['session', 'remove', sessionId, '--force'], 30_000);
+  }
+
   async listGroups(): Promise<string[]> {
     return parseGroupPaths((await this.run(['group', 'list', '--json'])).stdout);
+  }
+
+  async createGroup(name: string, parent?: string): Promise<void> {
+    await this.run(buildCreateGroupArgs(name, parent), 30_000);
   }
 
   async moveSessionToGroup(sessionId: string, group: string): Promise<void> {

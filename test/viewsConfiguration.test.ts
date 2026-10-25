@@ -28,6 +28,7 @@ describe('DeckBridge view navigation', () => {
     const commands = (packageJson.contributes.commands as Array<{ command: string }>).map((command) => command.command);
     assert.ok(commands.includes('deckbridge.expandGroups'));
     assert.ok(commands.includes('deckbridge.collapseGroups'));
+    assert.ok(commands.includes('deckbridge.remove'));
     assert.equal(commands.includes('deckbridge.toggleGroups'), false);
     const titleCommands = (packageJson.contributes.menus['view/title'] as Array<{ command: string }>).map((command) => command.command);
     assert.deepEqual(titleCommands.filter((command) => command === 'deckbridge.expandGroups' || command === 'deckbridge.collapseGroups'), ['deckbridge.expandGroups', 'deckbridge.collapseGroups']);

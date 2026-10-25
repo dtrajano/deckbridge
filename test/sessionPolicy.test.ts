@@ -26,13 +26,13 @@ test('uses distinct indicator colors for active, stopped, and errored sessions',
 });
 
 test('maps session states to visible tree icons and colors', () => {
-  assert.deepEqual(sessionTreeIndicator('running'), { icon: 'sync~spin', color: 'charts.green' });
-  assert.deepEqual(sessionTreeIndicator('waiting'), { icon: 'bell-dot-filled', color: 'charts.yellow' });
-  assert.deepEqual(sessionTreeIndicator('idle'), { icon: 'circle-filled', color: 'charts.orange' });
-  assert.deepEqual(sessionTreeIndicator('stopped'), { icon: 'debug-stop', color: 'charts.orange' });
-  assert.deepEqual(sessionTreeIndicator('error'), { icon: 'error', color: 'charts.red' });
-  assert.deepEqual(sessionTreeIndicator('not-started'), { icon: 'circle-outline', color: 'charts.blue' });
-  assert.deepEqual(sessionTreeIndicator('unknown'), { icon: 'question', color: 'disabledForeground' });
+  assert.deepEqual(sessionTreeIndicator('running'), { icon: 'sync~spin', color: 'charts.green', label: 'Pensando · em andamento' });
+  assert.deepEqual(sessionTreeIndicator('waiting'), { icon: 'bell-dot-filled', color: 'charts.yellow', label: 'Aguardando interação' });
+  assert.deepEqual(sessionTreeIndicator('idle'), { icon: 'circle-filled', color: 'disabledForeground', label: 'Parado' });
+  assert.deepEqual(sessionTreeIndicator('stopped'), { icon: 'circle-slash', color: 'disabledForeground', label: 'Fechado' });
+  assert.deepEqual(sessionTreeIndicator('error'), { icon: 'error', color: 'charts.red', label: 'Erro' });
+  assert.deepEqual(sessionTreeIndicator('not-started'), { icon: 'circle-outline', color: 'charts.blue', label: 'Não iniciado' });
+  assert.deepEqual(sessionTreeIndicator('unknown'), { icon: 'question', color: 'disabledForeground', label: 'Estado desconhecido' });
 });
 
 test('auto-starts only inactive sessions when enabled', () => {
@@ -66,6 +66,9 @@ test('builds send arguments in Agent Deck documented order', () => {
   ]);
   assert.deepEqual(buildSendArgs('session-id', '/status', true), [
     'session', 'send', 'session-id', '/status', '--json', '--no-wait'
+  ]);
+  assert.deepEqual(buildSendArgs('session-id', 'describe image', false, ['/tmp/a.png', '/tmp/b.jpg']), [
+    'session', 'send', 'session-id', 'describe image', '--json', '--image', '/tmp/a.png', '--image', '/tmp/b.jpg'
   ]);
 });
 

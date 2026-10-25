@@ -83,6 +83,8 @@ test('checks workspace containment without prefix collisions', () => {
 test('validates timeline turns', () => {
   const timeline = parseTimeline('{"turns":[{"id":"m1","kind":"assistant","body":"Done"}],"through_cursor":"x"}');
   assert.equal(timeline.turns[0].body, 'Done');
+  const older = parseTimeline('{"turns":[],"before_cursor":"older-cursor"}');
+  assert.equal(older.before_cursor, 'older-cursor');
   assert.throws(() => parseTimeline('{"rows":[]}'));
   assert.throws(
     () => parseTimeline('{"code":"INVALID_OPERATION","error":"recall is off"}'),

@@ -44,6 +44,9 @@
   "activationEvents": [
     "onView:deckbridge.sessions"
   ],
+  "extensionKind": [
+    "workspace"
+  ],
   "main": "./dist/src/extension.js",
   "contributes": {
     "viewsContainers": {
@@ -117,6 +120,16 @@
         "icon": "$(add)"
       },
       {
+        "command": "deckbridge.createSessionInGroup",
+        "title": "DeckBridge: New Chat in Group",
+        "icon": "$(add)"
+      },
+      {
+        "command": "deckbridge.createGroup",
+        "title": "DeckBridge: Create Group",
+        "icon": "$(folder)"
+      },
+      {
         "command": "deckbridge.start",
         "title": "DeckBridge: Start Session"
       },
@@ -131,6 +144,11 @@
       {
         "command": "deckbridge.rename",
         "title": "DeckBridge: Rename Session"
+      },
+      {
+        "command": "deckbridge.remove",
+        "title": "DeckBridge: Remove Chat",
+        "icon": "$(trash)"
       },
       {
         "command": "deckbridge.moveToGroup",
@@ -156,6 +174,11 @@
           "command": "deckbridge.createSession",
           "when": "view == deckbridge.sessions",
           "group": "navigation@1"
+        },
+        {
+          "command": "deckbridge.createGroup",
+          "when": "view == deckbridge.sessions",
+          "group": "navigation@2"
         },
         {
           "command": "deckbridge.toggleScope",
@@ -215,9 +238,24 @@
           "group": "manage@1"
         },
         {
-          "command": "deckbridge.moveToGroup",
+          "command": "deckbridge.remove",
           "when": "view == deckbridge.sessions && viewItem == deckbridge.session",
           "group": "manage@2"
+        },
+        {
+          "command": "deckbridge.moveToGroup",
+          "when": "view == deckbridge.sessions && viewItem == deckbridge.session",
+          "group": "manage@3"
+        },
+        {
+          "command": "deckbridge.createGroup",
+          "when": "view == deckbridge.sessions && viewItem == deckbridge.group",
+          "group": "manage@1"
+        },
+        {
+          "command": "deckbridge.createSessionInGroup",
+          "when": "view == deckbridge.sessions && viewItem == deckbridge.group",
+          "group": "inline@1"
         },
         {
           "command": "deckbridge.switchTool",
@@ -254,7 +292,7 @@
         },
         "deckbridge.initialMessageLimit": {
           "type": "number",
-          "default": 100,
+          "default": 500,
           "minimum": 20,
           "maximum": 500,
           "description": "Number of recent chat rows loaded initially."

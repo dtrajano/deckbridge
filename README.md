@@ -53,7 +53,7 @@ If VS Code does not inherit your shell `PATH`, use **DeckBridge: Configure Agent
 
 ## Preview limitations
 
-- File and image attachments are not available yet.
+- The composer accepts images and files by drag-and-drop or through the attachment button. Images are passed to Claude/Gemini using Agent Deck's image transport; other tools receive a local attachment path in the prompt.
 - Rich Markdown rendering is planned; current transcript content prioritizes safe plain-text display.
 - Capabilities such as model and tool switching depend on the active agent and Agent Deck adapter.
 

@@ -23,17 +23,18 @@ export function sessionIndicatorTone(status: string): SessionIndicatorTone {
 export interface SessionTreeIndicator {
   icon: string;
   color: string;
+  label: string;
 }
 
 export function sessionTreeIndicator(status: string): SessionTreeIndicator {
   switch (status.toLowerCase()) {
-    case 'running': return { icon: 'sync~spin', color: 'charts.green' };
-    case 'waiting': return { icon: 'bell-dot-filled', color: 'charts.yellow' };
-    case 'error': return { icon: 'error', color: 'charts.red' };
-    case 'not-started': return { icon: 'circle-outline', color: 'charts.blue' };
-    case 'stopped': return { icon: 'debug-stop', color: 'charts.orange' };
-    case 'idle': return { icon: 'circle-filled', color: 'charts.orange' };
-    default: return { icon: 'question', color: 'disabledForeground' };
+    case 'running': return { icon: 'sync~spin', color: 'charts.green', label: 'Pensando · em andamento' };
+    case 'waiting': return { icon: 'bell-dot-filled', color: 'charts.yellow', label: 'Aguardando interação' };
+    case 'error': return { icon: 'error', color: 'charts.red', label: 'Erro' };
+    case 'not-started': return { icon: 'circle-outline', color: 'charts.blue', label: 'Não iniciado' };
+    case 'stopped': return { icon: 'circle-slash', color: 'disabledForeground', label: 'Fechado' };
+    case 'idle': return { icon: 'circle-filled', color: 'disabledForeground', label: 'Parado' };
+    default: return { icon: 'question', color: 'disabledForeground', label: 'Estado desconhecido' };
   }
 }
 
@@ -51,8 +52,8 @@ export function isThinkingStatus(status: string | undefined, running: boolean | 
   return Boolean(verb?.trim());
 }
 
-export function buildSendArgs(sessionId: string, message: string, immediate = false): string[] {
-  return ['session', 'send', sessionId, message, '--json', ...(immediate ? ['--no-wait'] : [])];
+export function buildSendArgs(sessionId: string, message: string, immediate = false, imagePaths: readonly string[] = []): string[] {
+  return ['session', 'send', sessionId, message, '--json', ...(immediate ? ['--no-wait'] : []), ...imagePaths.flatMap((imagePath) => ['--image', imagePath])];
 }
 
 export function expectsTranscriptResponse(message: string): boolean {

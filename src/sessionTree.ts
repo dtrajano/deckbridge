@@ -2,10 +2,12 @@ import * as vscode from 'vscode';
 import { AgentDeckClient } from './agentDeckClient';
 import { isSessionInWorkspace } from './parsers';
 import { sessionTreeIndicator } from './sessionPolicy';
-import { displayStatus, summarizeSessions } from './sessionSummary';
+import { summarizeSessions } from './sessionSummary';
 import { AgentDeckSession, InstallationState } from './types';
 import { mergeTreeSessionStatus } from './treeSessionStatus';
-import { groupContainsSession, setAllGroupsExpanded, setGroupExpanded } from './treeExpansion';
+import { setAllGroupsExpanded, setGroupExpanded } from './treeExpansion';
+import { buildGroupTree, GroupTreeEntry } from './groupTree';
+import { decodeDraggedSessionIds, encodeDraggedSessionIds, SESSION_TREE_MIME } from './treeDragDrop';
 
 export type TreeNode = StatusNode | SummaryNode | GroupNode | SessionNode;
 
@@ -21,7 +23,7 @@ export class SummaryNode {
 
 export class GroupNode {
   readonly kind = 'group';
-  constructor(readonly name: string, readonly sessions: AgentDeckSession[]) {}
+  constructor(readonly name: string, readonly sessions: AgentDeckSession[], readonly children: GroupNode[] = [], readonly label = name) {}
 }
 
 export class SessionNode {
@@ -29,10 +31,36 @@ export class SessionNode {
   constructor(readonly session: AgentDeckSession) {}
 }
 
+export class SessionTreeDragController implements vscode.TreeDragAndDropController<TreeNode>, vscode.Disposable {
+  readonly dragMimeTypes = [SESSION_TREE_MIME];
+  readonly dropMimeTypes = [SESSION_TREE_MIME];
+
+  constructor(private readonly getClient: () => AgentDeckClient, private readonly refresh: () => Thenable<void> | Promise<void>) {}
+
+  handleDrag(source: readonly TreeNode[], dataTransfer: vscode.DataTransfer): void {
+    const ids = source.filter((node): node is SessionNode => node instanceof SessionNode).map((node) => node.session.id);
+    if (ids.length) dataTransfer.set(SESSION_TREE_MIME, new vscode.DataTransferItem(encodeDraggedSessionIds(ids)));
+  }
+
+  async handleDrop(target: TreeNode | undefined, dataTransfer: vscode.DataTransfer): Promise<void> {
+    if (!(target instanceof GroupNode)) return;
+    const item = dataTransfer.get(SESSION_TREE_MIME);
+    if (!item) return;
+    const ids = decodeDraggedSessionIds(await item.value);
+    if (!ids.length) return;
+    const client = this.getClient();
+    for (const id of ids) await client.moveSessionToGroup(id, target.name);
+    await this.refresh();
+  }
+
+  dispose(): void {}
+}
+
 export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, vscode.Disposable {
   private readonly changeEmitter = new vscode.EventEmitter<TreeNode | undefined>();
   readonly onDidChangeTreeData = this.changeEmitter.event;
   private sessions: AgentDeckSession[] = [];
+  private groupPaths: string[] = [];
   private readonly collapsedGroups = new Set<string>();
   private cachedRoots?: TreeNode[];
   private installation: InstallationState = { available: false, error: 'Checking Agent Deck…' };
@@ -51,6 +79,7 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
     }
     try {
       const listed = await client.listSessions(true);
+      this.groupPaths = await client.listGroups().catch(() => []);
       const detailed = await mapWithConcurrency(listed, 4, async (session) => {
         const details = await client.sessionDetails(session.id).catch(() => undefined);
         const candidate = mergeTreeSessionStatus(session, details, undefined);
@@ -63,6 +92,7 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
       this.cachedRoots = undefined;
     } catch (error) {
       this.sessions = [];
+      this.groupPaths = [];
       this.cachedRoots = undefined;
       this.installation = { available: true, version: this.installation.version, error: errorMessage(error) };
     }
@@ -86,14 +116,15 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
     }
     if (element instanceof GroupNode) {
       const item = new vscode.TreeItem(
-        element.name,
+        element.label,
         this.collapsedGroups.has(element.name)
           ? vscode.TreeItemCollapsibleState.Collapsed
           : vscode.TreeItemCollapsibleState.Expanded
       );
       item.id = `group:${element.name}`;
-      item.description = String(element.sessions.length);
+      item.description = `${element.sessions.length}${element.children.length ? ` · ${element.children.length} subgrupo${element.children.length === 1 ? '' : 's'}` : ''}`;
       item.iconPath = new vscode.ThemeIcon('folder');
+      item.contextValue = 'deckbridge.group';
       return item;
     }
     if (element instanceof SummaryNode) {
@@ -107,10 +138,11 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
     const session = element.session;
     const item = new vscode.TreeItem(session.title, vscode.TreeItemCollapsibleState.None);
     item.id = session.id;
-    item.description = [displayStatus(session.status), session.tool, session.model].filter(Boolean).join(' · ');
+    const indicator = sessionTreeIndicator(session.status);
+    item.description = [indicator.label, session.tool, session.model].filter(Boolean).join(' · ');
     item.tooltip = new vscode.MarkdownString([
       `**${session.title}**`,
-      `Status: ${displayStatus(session.status)}`,
+      `Status: ${indicator.label}`,
       ...(session.substate ? [`Substate: ${session.substate}`] : []),
       `Tool: ${session.tool}`,
       ...(session.model ? [`Model: ${session.model}`] : []),
@@ -124,7 +156,6 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
       ...(session.lastActivityAt ? [`Last activity: ${session.lastActivityAt}`] : []),
       `Path: ${session.path || 'Unknown'}`
     ].join('\n\n'));
-    const indicator = sessionTreeIndicator(session.status);
     item.iconPath = new vscode.ThemeIcon(indicator.icon, new vscode.ThemeColor(indicator.color));
     item.contextValue = 'deckbridge.session';
     item.command = { command: 'deckbridge.openChat', title: 'Open chat', arguments: [element] };
@@ -133,7 +164,10 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
 
   getChildren(element?: TreeNode): TreeNode[] {
     if (!this.installation.available) return element ? [] : [new StatusNode(this.installation)];
-    if (element instanceof GroupNode) return element.sessions.map((session) => new SessionNode(session));
+    if (element instanceof GroupNode) return [
+      ...element.children,
+      ...element.sessions.map((session) => new SessionNode(session))
+    ];
     if (element) return [];
     return this.rootNodes();
   }
@@ -145,13 +179,19 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
    */
   getParent(element: TreeNode): TreeNode | undefined {
     if (!(element instanceof SessionNode)) return undefined;
-    const groups = this.rootNodes().filter((node): node is GroupNode => node instanceof GroupNode);
-    const name = groupContainsSession(groups, element.session.id);
-    return groups.find((group) => group.name === name);
+    const findParent = (groups: readonly GroupNode[]): GroupNode | undefined => {
+      for (const group of groups) {
+        if (group.sessions.some((session) => session.id === element.session.id)) return group;
+        const nested = findParent(group.children);
+        if (nested) return nested;
+      }
+      return undefined;
+    };
+    return findParent(this.rootNodes().filter((node): node is GroupNode => node instanceof GroupNode));
   }
 
   async expandAll(treeView: vscode.TreeView<TreeNode>): Promise<void> {
-    const groups = this.rootNodes().filter((node): node is GroupNode => node instanceof GroupNode);
+    const groups = flattenGroups(this.rootNodes().filter((node): node is GroupNode => node instanceof GroupNode));
     setAllGroupsExpanded(this.collapsedGroups, [], true);
     for (const group of groups) {
       try {
@@ -165,7 +205,7 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
   }
 
   collapseAll(): void {
-    setAllGroupsExpanded(this.collapsedGroups, this.rootNodes().filter((node): node is GroupNode => node instanceof GroupNode).map((node) => node.name), false);
+    setAllGroupsExpanded(this.collapsedGroups, flattenGroups(this.rootNodes().filter((node): node is GroupNode => node instanceof GroupNode)).map((node) => node.name), false);
     this.changeEmitter.fire(undefined);
   }
 
@@ -182,14 +222,7 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<TreeNode>, v
       ? this.sessions
       : this.sessions.filter((session) => isSessionInWorkspace(session.path, roots));
 
-    const grouped = new Map<string, AgentDeckSession[]>();
-    for (const session of visible) {
-      const group = session.group || 'Ungrouped';
-      grouped.set(group, [...(grouped.get(group) ?? []), session]);
-    }
-    const groups = [...grouped.entries()]
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([name, sessions]) => new GroupNode(name, sessions.sort(sortSessions)));
+    const groups = buildGroupTree(visible, this.groupPaths).map((group) => toGroupNode(group));
     const content: TreeNode[] = [new SummaryNode(visible), ...groups];
     this.cachedRoots = this.installation.error ? [new StatusNode(this.installation), ...content] : content;
     return this.cachedRoots;
@@ -218,6 +251,14 @@ async function mapWithConcurrency<T, R>(values: readonly T[], limit: number, map
 function sortSessions(a: AgentDeckSession, b: AgentDeckSession): number {
   const priority = (status: string) => ({ waiting: 0, running: 1, error: 2, idle: 3, stopped: 4, 'not-started': 5 }[status] ?? 6);
   return priority(a.status) - priority(b.status) || a.title.localeCompare(b.title);
+}
+
+function toGroupNode(group: GroupTreeEntry): GroupNode {
+  return new GroupNode(group.path, group.sessions.sort(sortSessions), group.children.map(toGroupNode), group.label);
+}
+
+function flattenGroups(groups: readonly GroupNode[]): GroupNode[] {
+  return groups.flatMap((group) => [group, ...flattenGroups(group.children)]);
 }
 
 function errorMessage(error: unknown): string {
