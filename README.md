@@ -4,7 +4,7 @@
 
 > DeckBridge is an independent, community-developed extension. It is not affiliated with, endorsed by, or maintained by the [Agent Deck](https://github.com/asheshgoplani/agent-deck) project.
 
-![DeckBridge icon](media/deckbridge.png)
+![DeckBridge icon](https://raw.githubusercontent.com/dtrajano/deckbridge/main/media/deckbridge.png)
 
 ## Features
 

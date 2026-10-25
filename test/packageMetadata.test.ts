@@ -27,6 +27,11 @@ test('links Marketplace users to the public project resources', () => {
   assert.deepEqual(manifest.bugs, { url: 'https://github.com/dtrajano/deckbridge/issues' });
 });
 
+test('uses a stable public README image URL for the Marketplace renderer', () => {
+  const readme = readFileSync(path.join(root, 'README.md'), 'utf8');
+  assert.match(readme, /https:\/\/raw\.githubusercontent\.com\/dtrajano\/deckbridge\/main\/media\/deckbridge\.png/);
+});
+
 test('keeps development files and generated VSIX archives out of the package', () => {
   const ignored = readFileSync(path.join(root, '.vscodeignore'), 'utf8');
   for (const pattern of ['.github/**', 'src/**', 'test/**', 'scripts/**', 'deckbridge-*.vsix']) {
